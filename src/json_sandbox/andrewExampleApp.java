@@ -1,58 +1,39 @@
 package json_sandbox;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
+
 import java.net.ServerSocket;
-import java.net.Socket;
+
 
 import org.quickconnectfamily.json.JSONException;
-import org.quickconnectfamily.json.JSONInputStream;
-import org.quickconnectfamily.json.JSONOutputStream;
-import org.quickconnectfamily.json.JSONUtilities;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 
 public class andrewExampleApp extends Thread{
-	
-	public static void main(String[] args) throws IOException, JSONException {
-		
+
+	public static void main(String[] args) throws IOException, JSONException, InterruptedException {
+
+		ExecutorService anExecutor = Executors.newCachedThreadPool();
 		ArrayList beanList = new ArrayList();
+		ServerSocket listeningSocket = new ServerSocket(8080);
+		System.out.println("Socket Open");
+		int i = 1;
 
-		while (true) {
-			//SOCKET IO
-			ServerSocket listeningSocket = new ServerSocket(8080);
-			System.out.println("Socket Open");
+		while (i<6) {
 			Socket Serverus = listeningSocket.accept();
-
-			JSONOutputStream jsonOut = new JSONOutputStream(Serverus.getOutputStream());
-			JSONInputStream jsonIn = new JSONInputStream(Serverus.getInputStream());
-
-			try {
-				
-				HashMap<String, ?> gearCollectionMap = (HashMap<String, ?>) jsonIn.readObject();
-				
-				String gearBeanString = JSONUtilities.stringify(gearCollectionMap);
-				beanList.add(gearBeanString);
-				System.out.println(beanList);
-				
-				listeningSocket.close();
-				System.out.println("Socket Closed");
-
-			} catch (JSONException e) { 
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e){
-				e.printStackTrace();
-			}
-
+			ClientHandler client = new ClientHandler(Serverus, beanList, i);
+			anExecutor.execute(client);
+			i++;
 		}
+		anExecutor.shutdown();
+		anExecutor.awaitTermination(5, TimeUnit.SECONDS);
+		listeningSocket.close();
+		System.out.println("Socket Closed");
 
 	}
 }
